@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LE SuperJeu de Nk</title>
+  <style>
+    :root {
+      --bg: #000;
+      --text: #fff;
+      --bar-bg: #1b1b1b;
+      --bar-border: #555;
+      --bar-fill: #e8e8e8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Comic Sans MS", "Comic Sans", cursive;
+      cursor: wait;
+      user-select: none;
+    }
+
+    body.closed {
+      cursor: default;
+    }
+
+    .screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(255,255,255,0.08), transparent 32%),
+        #000;
+    }
+
+    .window {
+      position: relative;
+      width: min(100%, 1000px);
+      height: min(100%, 600px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .title {
+      margin: 0;
+      line-height: 0.95;
+      font-size: clamp(56px, 10vw, 135px);
+      font-weight: 400;
+      letter-spacing: -0.04em;
+      text-align: center;
+      text-shadow: 0 0 16px rgba(255,255,255,0.18);
+    }
+
+    .subtitle {
+      margin: -8px 0 58px 260px;
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 400;
+      line-height: 1;
+      text-shadow: 0 0 12px rgba(255,255,255,0.15);
+    }
+
+    .loading-zone {
+      width: min(70vw, 620px);
+      max-width: 100%;
+    }
+
+    .loading-text {
+      min-height: 42px;
+      margin: 0 0 4px;
+      font-size: clamp(22px, 3vw, 33px);
+      line-height: 1.15;
+      white-space: nowrap;
+      text-align: left;
+    }
+
+    .progress {
+      width: 100%;
+      height: 14px;
+      padding: 1px;
+      border: 1px solid var(--bar-border);
+      background: var(--bar-bg);
+      cursor: pointer;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.8);
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #bfbfbf, var(--bar-fill));
+      transition: width 50ms linear;
+    }
+
+    .closed-message {
+      display: none;
+      text-align: center;
+      font-size: clamp(30px, 5vw, 56px);
+    }
+
+    body.closed .window {
+      display: none;
+    }
+
+    body.closed .closed-message {
+      display: block;
+    }
+
+    @media (max-width: 700px) {
+      .subtitle {
+        margin-left: 120px;
+        margin-bottom: 52px;
+      }
+
+      .loading-zone {
+        width: 86vw;
+      }
+
+      .loading-text {
+        white-space: normal;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="screen" aria-label="Écran de chargement LE SuperJeu de Nk">
+    <section class="window">
+      <h1 class="title">LE SuperJeu</h1>
+      <p class="subtitle">de Nk</p>
+
+      <div class="loading-zone">
+        <p id="loadingDesc" class="loading-text">Loading X...</p>
+        <div id="progress" class="progress" title="Clique pour quitter">
+          <div id="progressFill" class="progress-fill"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="closed-message">Application fermée.</div>
+  </main>
+
+  <script>
+    const loadingTexts = [
+      "Chargement des textures...",
+      "Préparation du moteur de rendu...",
+      "Initialisation du système de sons...",
+      "Chargement des paramètres du joueur...",
+      "Connexion aux services en ligne...",
+      "Synchronisation du profil utilisateur...",
+      "Chargement du monde...",
+      "Génération des objets du terrain...",
+      "Initialisation de l’interface utilisateur...",
+      "Chargement des animations...",
+      "Vérification de l’intégrité des fichiers...",
+      "Préparation de l’environnement dynamique...",
+      "Chargement des scripts de gameplay...",
+      "Configuration du système de sauvegarde...",
+      "Chargement des ennemis...",
+      "Initialisation de l’IA...",
+      "Application des paramètres graphiques...",
+      "Mise en cache des assets audio...",
+      "Préparation de la physique du jeu...",
+      "Chargement du HUD...",
+      "Connexion au serveur de matchmaking...",
+      "Récupération des données de progression...",
+      "Chargement des cinématiques...",
+      "Indexation des fichiers de texture...",
+      "Chargement des quêtes actives...",
+      "Chargement de la carte du monde...",
+      "Génération des effets visuels...",
+      "Préparation des points d’apparition...",
+      "Application des paramètres de contrôle...",
+      "Chargement des données réseau...",
+      "Chargement des objets interactifs...",
+      "Récupération des succès débloqués...",
+      "Configuration des touches...",
+      "Chargement du système météo...",
+      "Initialisation des collisions...",
+      "Chargement du système de combat...",
+      "Configuration du niveau de difficulté...",
+      "Chargement du modèle de personnage...",
+      "Préparation des dialogues...",
+      "Chargement du système de loot...",
+      "Synchronisation avec le cloud...",
+      "Chargement de la base de données des objets...",
+      "Initialisation du système de craft...",
+      "Chargement des effets de particules...",
+      "Chargement du système de talents...",
+      "Application des modifications de configuration...",
+      "Génération de la faune locale...",
+      "Préparation des textures haute résolution...",
+      "Chargement du niveau en cours...",
+      "Chargement des checkpoints...",
+      "Vérification des mises à jour...",
+      "Chargement des zones connectées...",
+      "Chargement des PNJ...",
+      "Chargement des skins disponibles...",
+      "Initialisation du système d’inventaire...",
+      "Chargement des éléments de décor...",
+      "Préparation des transitions de caméra...",
+      "Chargement des fichiers audio localisés...",
+      "Application des filtres post-traitement...",
+      "Chargement des journaux de quête...",
+      "Préparation de l’intelligence des alliés...",
+      "Initialisation du moteur de dialogue...",
+      "Chargement des effets sonores contextuels...",
+      "Préparation des textures normales...",
+      "Chargement des raccourcis clavier...",
+      "Synchronisation des événements mondiaux...",
+      "Chargement de l’interface de combat...",
+      "Récupération des données de compte...",
+      "Chargement des emplacements de spawn...",
+      "Chargement des options avancées...",
+      "Chargement du système de personnalisation...",
+      "Préparation du mini-carte...",
+      "Chargement des filtres visuels...",
+      "Chargement des musiques d’ambiance...",
+      "Chargement des scripts de quête secondaire...",
+      "Préparation de l’environnement sonore 3D...",
+      "Chargement des paramètres de sauvegarde automatique...",
+      "Chargement des objets ramassables...",
+      "Préparation des ombres dynamiques...",
+      "Chargement des zones d’interaction...",
+      "Chargement des zones de chargement différé...",
+      "Préparation du système de gestion du temps...",
+      "Chargement des éléments de HUD avancé...",
+      "Initialisation du système de navigation IA...",
+      "Chargement du menu principal...",
+      "Chargement du mode multijoueur...",
+      "Chargement du système de progression...",
+      "Chargement des armes et équipements...",
+      "Initialisation des paramètres audio personnalisés...",
+      "Préparation des raccourcis de compétences...",
+      "Chargement des effets environnementaux...",
+      "Synchronisation des données de la session...",
+      "Chargement du système d’endurance...",
+      "Chargement des comportements ennemis...",
+      "Chargement des effets de lumière dynamiques...",
+      "Préparation de la profondeur de champ...",
+      "Initialisation des points de passage...",
+      "Chargement de la physique des objets...",
+      "Chargement des textures du sol...",
+      "Initialisation de l’environnement interactif...",
+      "Chargement des déclencheurs de script...",
+      "Chargement du journal du joueur...",
+      "Chargement des zones explorées...",
+      "Préparation de l’intelligence contextuelle...",
+      "Chargement des données d’interaction réseau..."
+    ];
+
+    const loadingDesc = document.getElementById("loadingDesc");
+    const progress = document.getElementById("progress");
+    const progressFill = document.getElementById("progressFill");
+
+    let targetDurationMs = 0;
+    let elapsedMs = 0;
+    let currentText = "";
+    let intervalId = null;
+    const tickMs = 50;
+
+    function randomInt(minInclusive, maxExclusive) {
+      return Math.floor(Math.random() * (maxExclusive - minInclusive)) + minInclusive;
+    }
+
+    function pickDuration() {
+      const roll = randomInt(0, 100);
+
+      if (roll < 15) {
+        return randomInt(200, 800);
+      }
+
+      if (roll < 85) {
+        return randomInt(1500, 10000);
+      }
+
+      return randomInt(15000, 40000);
+    }
+
+    function formatLoadingText(percent) {
+      return `${currentText} ${percent}%`;
+    }
+
+    function startNextLoadingCycle() {
+      progressFill.style.width = "0%";
+      elapsedMs = 0;
+      targetDurationMs = pickDuration();
+      currentText = loadingTexts[randomInt(0, loadingTexts.length)];
+      loadingDesc.textContent = formatLoadingText(0);
+    }
+
+    function tick() {
+      elapsedMs += tickMs;
+
+      const progressRatio = Math.min(1, elapsedMs / targetDurationMs);
+      const percent = Math.floor(progressRatio * 100);
+
+      progressFill.style.width = `${percent}%`;
+      loadingDesc.textContent = formatLoadingText(percent);
+
+      if (progressRatio >= 1) {
+        startNextLoadingCycle();
+      }
+    }
+
+    function startApp() {
+      startNextLoadingCycle();
+      intervalId = window.setInterval(tick, tickMs);
+    }
+
+    progress.addEventListener("click", () => {
+      if (intervalId) {
+        window.clearInterval(intervalId);
+      }
+
+      document.body.classList.add("closed");
+    });
+
+    startApp();
+  </script>
+</body>
+</html>
